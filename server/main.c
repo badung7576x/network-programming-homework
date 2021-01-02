@@ -32,7 +32,7 @@ int main(int argc, char **argv){
     serv_addr.sin_addr.s_addr = inet_addr(ip);
     serv_addr.sin_port = htons(port);
 
-     /* Bind */
+    /* Bind */
     if (bind(listenfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
         perror("Socket binding failed");
         return EXIT_FAILURE;
@@ -44,15 +44,15 @@ int main(int argc, char **argv){
         return EXIT_FAILURE;
     }
 
-     printf("<[ CHATAPP SERVER STARTED ]>\n");
+     printf("<[ Server is starting ... ]>\n");
 
 
     while (1) {
         socklen_t clilen = sizeof(cli_addr);
         connfd = accept(listenfd, (struct sockaddr*)&cli_addr, &clilen);
 
-    if ((client_count + 1) == MAX_CLIENTS) {
-            printf("<< max clients reached\n");
+        if ((client_count + 1) == MAX_CLIENTS) {
+            printf("<< Max clients reached\n");
             close(connfd);
             continue;
         }
@@ -62,10 +62,10 @@ int main(int argc, char **argv){
         cli->addr = cli_addr;
         cli->connfd = connfd;
         cli->uid = uid++;
-        cli -> currentRoomid = -1;
+        cli->currentRoomid = -1;
         char temp[64];
-        sprintf(temp, "new user%d", cli->uid);
-        strcpy(cli -> name, temp);
+        sprintf(temp, "New user%d", cli->uid);
+        strcpy(cli->name, temp);
        
         /* Add client to the queue and fork thread */
         add_to_clients(cli);

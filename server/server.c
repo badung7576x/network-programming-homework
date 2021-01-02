@@ -1,5 +1,6 @@
 #include "server.h"
 #include "../common/common.h"
+#include "../message/message.h"
 
 
 /* Send message to sender */
@@ -54,12 +55,10 @@ void add_to_rooms(room_t *room){
     }
     
     clients[room->userids[0]]-> currentRoomid = room->roomid;
-    send_message_sender("  ~~~~~~  ~~~~~~  ~~~~~~  ~~~~~~  ~~~~~~ \n", clients[room->userids[0]]->connfd);
-    send_message_sender("You created and entered a room.", clients[room->userids[0]]->connfd);
-    send_message_sender("\n  ~~~~~~  ~~~~~~  ~~~~~~  ~~~~~~  ~~~~~~ \n", clients[room->userids[0]]->connfd);
-    send_message_sender("\n  ~~~~~~  ~~~~~~  ~~~~~~  ", clients[room->userids[0]]->connfd);
+    send_message_sender("----\n", clients[room->userids[0]]->connfd);
+    send_message_sender("You created and entered a room.\n", clients[room->userids[0]]->connfd);
+    send_message_sender("----\n", clients[room->userids[0]]->connfd);
     send_message_sender(room->name, clients[room->userids[0]]->connfd);
-    send_message_sender("  ~~~~~~  ~~~~~~  ~~~~~~  \n", clients[room->userids[0]]->connfd);
     room_count++;
     pthread_mutex_unlock(&room_mutex);
 }
@@ -111,16 +110,28 @@ Adds a new client to clients.
 */
 void add_to_clients(client_t *client){
     pthread_mutex_lock(&clients_mutex);
-
     for (int i = 0; i < MAX_CLIENTS; ++i) {
         if (!clients[i]) {
             clients[i] = client;
             break;
         }
     }
-    
     pthread_mutex_unlock(&clients_mutex);
+}
 
+void remove_to_clients(int uid){
+	pthread_mutex_lock(&clients_mutex);
+
+	for(int i=0; i < MAX_CLIENTS; ++i){
+		if(clients[i]){
+			if(clients[i]->uid == uid){
+				clients[i] = NULL;
+				break;
+			}
+		}
+	}
+
+	pthread_mutex_unlock(&clients_mutex);
 }
 
 /*
@@ -130,32 +141,21 @@ void *handle_client(void *arg) {
     char buff_in[BUFFER_SZ / 2];
     int rlen;
 
-    char helpString[1024] = "-nick nickname: Choose a new nickname for yourself. \n";
-    strcat(helpString, "-list: Lists the currently available rooms with the name of the customers in it. If the room is private, no details given. \n");
-    strcat(helpString, "-create room_name: Creates a new specified room. Not more than one room with the same name. \n");
-    strcat(helpString,"-pcreate room_name password: Creates a new specified private room. This type of room has been protected with password.\n");
-    strcat(helpString,"-enter room_name password(if private): Enter to the specified room. If the room is private, the client must know the password for enter. \n" );
-    strcat(helpString,"-quit: Quit from the room that you are in. You come back to the common area. \n");
-    strcat(helpString,"-msg message_body: Sends a message to room that you are in. \n" );
-    strcat(helpString,"-whoami: Shows your own nickname information.\n");
-    strcat(helpString,"-exit: Exit the program.\n");
-    strcat(helpString,"-help: To see this text again.\n");
-
     client_count++;
     client_t *cli = (client_t *)arg;
 
     printf("Accepted \" %s \" referenced by id %d\n",cli->name, cli->uid);
 
-    send_message_sender("  ~~~~~~  Welcome to ChatApp  ~~~~~~ \n", cli->connfd);
-    send_message_sender(helpString, cli->connfd);
-    send_message_sender("  ~~~~~~  ~~~~~~  ~~~~~~  ~~~~~~  ~~~~~~ \n \n \n \n", cli->connfd);
-    send_message_sender(" Please pick a new username with \"-nick nickname\" command. \n", cli->connfd);
+    send_message_sender("Welcome to ChatApp\n", cli->connfd);
+    send_message_sender("-----\n", cli->connfd);
 
     while ((rlen = read(cli->connfd, buff_in, sizeof(buff_in) - 1)) > 0) {
         buff_in[rlen] = '\0';
         strip_newline(buff_in);
 
         if (!strlen(buff_in)) continue;
+        
+        message *recv_mess = string_to_message(buff_in);
 
         if (buff_in[0] == '-') {
             char *first, *second, *third;
@@ -199,7 +199,6 @@ void *handle_client(void *arg) {
                     }
                 } else if(!strcmp(first, "-help")){
                     send_message_sender("  ~~~~~~  ~~~~~~  ~~~~~~  ~~~~~~  ~~~~~~ \n", cli->connfd);
-                    send_message_sender(helpString, cli->connfd);
                     send_message_sender("\n  ~~~~~~  ~~~~~~  ~~~~~~  ~~~~~~  ~~~~~~ \n", cli->connfd);
                 } else if(!strcmp(first, "-create")) {
                     if(cli->currentRoomid == -1){

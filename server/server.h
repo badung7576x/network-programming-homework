@@ -11,9 +11,9 @@
 #include <signal.h>
 
 #define MAX_CLIENTS 100
-#define MAX_ROOMS 100
+#define MAX_ROOMS 10
 #define BUFFER_SZ 2048
-#define PORT 3205
+#define PORT 8888
 
 extern int uid;
 extern int roomid;
@@ -33,7 +33,7 @@ typedef struct {
 typedef struct {
     int roomid;                 /* Room unique identifier */
     char name[32];              /* Room name */
-    int usercount;              /* total user count that entered the room */
+    int usercount;              /* Total user count that entered the room */
     int userids[20];            /* userids of users in room */
     int isPrivate;          
     char pass[32];
@@ -54,5 +54,6 @@ int find_room_id_by_name(char *str);
 void add_to_rooms(room_t *room);
 int check_room_name(char *str);
 void add_to_clients(client_t *client);
+void remove_to_clients(int uid);
 void *handle_client(void *arg);
 void list_rooms(client_t *client);
